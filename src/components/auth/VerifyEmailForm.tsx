@@ -1,10 +1,10 @@
 // src/components/auth/VerifyEmailForm.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Mail, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui';
-import { authApi } from '@/lib/api';
+import { apiClient } from '@/lib/api';
 
 export const VerifyEmailForm: React.FC = () => {
     const [isLoading, setIsLoading] = useState(false);
@@ -18,30 +18,13 @@ export const VerifyEmailForm: React.FC = () => {
     const email = searchParams.get('email') || '';
     const token = searchParams.get('token');
 
-    useEffect(() => {
-        if (token) {
-            verifyEmail(token);
-        }
-    }, [token]);
-
-    useEffect(() => {
-        if (countdown > 0) {
-            const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
-            return () => clearTimeout(timer);
-        } else {
-            setCanResend(true);
-        }
-    }, [countdown]);
-
-    const verifyEmail = async (verificationToken: string) => {
+    const verifyEmail = useCallback(async (verificationToken: string) => {
         setIsLoading(true);
         setError('');
 
         try {
-            const response = await authApi.verifyEmail({
-                token: verificationToken,
-                email,
-            });
+            // Pass only the token as a string
+            const response = await apiClient.verifyEmail(verificationToken);
 
             if (response.success) {
                 setSuccess(true);
@@ -56,14 +39,14 @@ export const VerifyEmailForm: React.FC = () => {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [router]);
 
     const resendVerification = async () => {
         setIsLoading(true);
         setError('');
 
         try {
-            const response = await authApi.resendVerification(email);
+            const response = await apiClient.resendVerification(email);
 
             if (response.success) {
                 setCanResend(false);
@@ -77,6 +60,21 @@ export const VerifyEmailForm: React.FC = () => {
             setIsLoading(false);
         }
     };
+
+    useEffect(() => {
+        if (token) {
+            verifyEmail(token);
+        }
+    }, [token, verifyEmail]);
+
+    useEffect(() => {
+        if (countdown > 0) {
+            const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+            return () => clearTimeout(timer);
+        } else {
+            setCanResend(true);
+        }
+    }, [countdown]);
 
     if (success) {
         return (

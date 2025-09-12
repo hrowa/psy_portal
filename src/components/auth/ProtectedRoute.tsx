@@ -1,7 +1,7 @@
 // src/components/auth/ProtectedRoute.tsx
 import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/lib/hooks';
+import { useAuth } from '@/lib/hooks/useAuth';
 import { Loading } from '@/components/ui';
 
 interface ProtectedRouteProps {

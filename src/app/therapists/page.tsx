@@ -1,10 +1,10 @@
-// src/app/therapists/page.tsx
+// app/therapists/page.tsx
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Search, Star, Filter, Users, ChevronRight, Lock, Calendar, Video } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Search, Star, Filter, Users, ChevronRight, Lock } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 const API_BASE = 'http://localhost:8080/api/v1';
 
@@ -41,26 +41,40 @@ const TherapistCard: React.FC<{ therapist: Therapist; onLoginRequired: () => voi
                                                                                             onLoginRequired
                                                                                         }) => {
     const { isAuthenticated } = useAuth();
+    const router = useRouter();
     const languages = JSON.parse(therapist.languages || '["Русский"]');
     const priceRubles = Math.round(therapist.price_per_hour / 100);
 
-    const handleBookSession = () => {
+    const handleBookSession = (e: React.MouseEvent) => {
+        e.stopPropagation(); // Предотвращаем переход в профиль при клике на кнопку
         if (isAuthenticated) {
+            // Логика записи на сессию для авторизованных пользователей
             console.log('Запись к психологу:', therapist.user.name);
+            // Здесь будет переход на страницу бронирования
         } else {
+            // Показать модальное окно входа для неавторизованных пользователей
             onLoginRequired();
         }
     };
 
+    const handleCardClick = () => {
+        router.push(`/therapists/${therapist.id}`);
+    };
+
     return (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+        <div
+            className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow cursor-pointer"
+            onClick={handleCardClick}
+        >
             <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center">
                     <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-semibold text-xl">
                         {therapist.user.name.split(' ').map(n => n[0]).join('')}
                     </div>
                     <div className="ml-4">
-                        <h3 className="text-lg font-semibold text-gray-900">{therapist.user.name}</h3>
+                        <h3 className="text-lg font-semibold text-gray-900 hover:text-blue-600 transition-colors">
+                            {therapist.user.name}
+                        </h3>
                         <p className="text-sm text-gray-500">{therapist.experience} лет опыта</p>
                         <div className="flex items-center mt-1">
                             <Star className="h-4 w-4 text-yellow-400 fill-current" />
@@ -72,9 +86,9 @@ const TherapistCard: React.FC<{ therapist: Therapist; onLoginRequired: () => voi
                 {therapist.is_online && (
                     <div className="flex flex-col items-end">
                         <span className="px-3 py-1 bg-green-100 text-green-800 text-sm rounded-full font-medium">
-                            <div className="w-2 h-2 bg-green-500 rounded-full mr-1 inline-block"></div>
-                            Онлайн сейчас
+                            Онлайн
                         </span>
+                        <span className="text-xs text-gray-500 mt-1">Доступен сейчас</span>
                     </div>
                 )}
             </div>
@@ -87,7 +101,11 @@ const TherapistCard: React.FC<{ therapist: Therapist; onLoginRequired: () => voi
                 <p className="text-sm text-gray-600 mb-2">
                     <strong>Подход:</strong> {therapist.approach}
                 </p>
-                <p className="text-sm text-gray-600 leading-relaxed">{therapist.bio}</p>
+                <p className="text-sm text-gray-600 leading-relaxed line-clamp-3">{therapist.bio}</p>
+                {/* Добавляем подсказку для перехода в профиль */}
+                <p className="text-xs text-blue-600 mt-2 hover:underline">
+                    Нажмите для подробной информации
+                </p>
             </div>
 
             <div className="flex flex-wrap gap-2 mb-4">
@@ -116,7 +134,10 @@ const TherapistCard: React.FC<{ therapist: Therapist; onLoginRequired: () => voi
                     </button>
                 ) : (
                     <button
-                        onClick={onLoginRequired}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onLoginRequired();
+                        }}
                         className="px-6 py-3 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors flex items-center font-medium border-2 border-dashed border-gray-300"
                         title="Необходим вход в систему"
                     >
@@ -192,17 +213,8 @@ const TherapistsPage: React.FC = () => {
     });
     const [currentPage, setCurrentPage] = useState(1);
 
-    const handleOpenLogin = () => {
-        setShowLoginPrompt(false);
-        alert('Открыть модальное окно входа');
-    };
-
-    const handleOpenRegister = () => {
-        setShowLoginPrompt(false);
-        alert('Открыть модальное окно регистрации');
-    };
-
-    const fetchTherapists = async (page: number = 1) => {
+    // Use useCallback to memoize fetchTherapists and prevent infinite re-renders
+    const fetchTherapists = useCallback(async (page: number = 1) => {
         try {
             setLoading(true);
             setError(null);
@@ -236,11 +248,26 @@ const TherapistsPage: React.FC = () => {
         } finally {
             setLoading(false);
         }
+    }, [filters]); // Only include filters in dependency array
+
+    // Получение функций для открытия модальных окон из контекста или пропсов
+    // Для демонстрации используем простые alert'ы
+    const handleOpenLogin = () => {
+        setShowLoginPrompt(false);
+        // Здесь должно быть открытие модального окна логина
+        alert('Открыть модальное окно входа');
     };
 
+    const handleOpenRegister = () => {
+        setShowLoginPrompt(false);
+        // Здесь должно быть открытие модального окна регистрации
+        alert('Открыть модальное окно регистрации');
+    };
+
+    // Now fetchTherapists is stable and can be safely used in useEffect
     useEffect(() => {
         fetchTherapists(currentPage);
-    }, [currentPage, filters]);
+    }, [currentPage, fetchTherapists]);
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
@@ -437,12 +464,11 @@ const TherapistsPage: React.FC = () => {
                         {therapists?.therapists && therapists.therapists.length > 0 ? (
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                                 {therapists.therapists.map((therapist) => (
-                                    <Link href={`/therapists/${therapist.id}`} key={therapist.id}>
-                                        <TherapistCard
-                                            therapist={therapist}
-                                            onLoginRequired={handleLoginRequired}
-                                        />
-                                    </Link>
+                                    <TherapistCard
+                                        key={therapist.id}
+                                        therapist={therapist}
+                                        onLoginRequired={handleLoginRequired}
+                                    />
                                 ))}
                             </div>
                         ) : (

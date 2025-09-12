@@ -1,7 +1,28 @@
 // src/lib/hooks/useSessions.ts
 import { useState, useEffect, useCallback } from 'react';
-import { sessionsApi } from '@/lib/api';
-import { Session, GetSessionsParams } from '@/types';
+import { apiClient } from '@/lib/api';
+
+// Локальные типы (пока нет в @/types)
+interface Session {
+    id: number;
+    therapist_id: number;
+    client_id: number;
+    start_time: string;
+    end_time?: string;
+    status: 'scheduled' | 'confirmed' | 'completed' | 'cancelled';
+    type: 'individual' | 'couple';
+    notes?: string;
+    rating?: {
+        rating: number;
+        comment?: string;
+    };
+    therapist: {
+        id: number;
+        name: string;
+        specialization: string;
+    };
+    created_at: string;
+}
 
 interface UseSessionsReturn {
     sessions: Session[];
@@ -24,15 +45,21 @@ export const useSessions = (): UseSessionsReturn => {
             setLoading(true);
             setError(null);
 
-            const response = await sessionsApi.getSessions();
+            // Используем apiClient напрямую
+            const response = await apiClient.getSessions();
 
-            if (response.success && response.data) {
-                setSessions(response.data.items);
+            if ('success' in response && response.success && 'data' in response && response.data && typeof response.data === 'object' && 'token' in response.data) {
+                // Предполагаем, что response.data содержит массив сессий или объект с items
+                const sessionsData = Array.isArray(response.data)
+                    ? response.data
+                    : response.data.items || [];
+                setSessions(sessionsData);
             } else {
                 setError(response.error || 'Failed to fetch sessions');
             }
-        } catch (error: any) {
-            setError(error.message || 'Failed to fetch sessions');
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : 'Failed to fetch sessions';
+            setError(errorMessage);
         } finally {
             setLoading(false);
         }
@@ -44,7 +71,7 @@ export const useSessions = (): UseSessionsReturn => {
 
     const cancelSession = useCallback(async (id: number, reason?: string) => {
         try {
-            const response = await sessionsApi.cancelSession(id, reason);
+            const response = await apiClient.cancelSession(id, reason);
             if (response.success) {
                 setSessions(prev =>
                     prev.map(session =>
@@ -64,12 +91,21 @@ export const useSessions = (): UseSessionsReturn => {
 
     const rateSession = useCallback(async (id: number, rating: number, comment?: string) => {
         try {
-            const response = await sessionsApi.rateSession(id, { rating, comment });
-            if (response.success) {
+            // Добавляем метод в apiClient или используем общий post
+            const response = await apiClient.post(`/sessions/${id}/rating`, {
+                rating,
+                comment
+            });
+
+            // Добавляем проверку типа для response
+            if (response && typeof response === 'object' && 'success' in response && response.success) {
                 setSessions(prev =>
                     prev.map(session =>
                         session.id === id
-                            ? { ...session, rating: response.data }
+                            ? {
+                                ...session,
+                                rating: { rating, comment }
+                            }
                             : session
                     )
                 );

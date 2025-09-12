@@ -1,4 +1,3 @@
-// lib/api.ts
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
 
 // Типы для API ответов (добавьте в types.ts если нужно)
@@ -57,19 +56,40 @@ class ApiClient {
 
         // Добавляем токен авторизации если есть
         const token = this.getAuthToken();
-        const headers: Record<string, string> = {
-            'Content-Type': 'application/json',
-            ...options?.headers,
-        };
 
+        // Create a Headers object - this is the recommended approach
+        const headers = new Headers();
+        headers.append('Content-Type', 'application/json');
+
+        // Handle existing headers from options
+        if (options?.headers) {
+            if (options.headers instanceof Headers) {
+                for (const [key, value] of options.headers.entries()) {
+                    headers.append(key, value);
+                }
+            } else if (typeof options.headers === 'object') {
+                // Type assertion to handle the Record<string, string> case
+                const headerObject = options.headers as Record<string, string>;
+                for (const key in headerObject) {
+                    if (Object.prototype.hasOwnProperty.call(headerObject, key)) {
+                        const value = headerObject[key];
+                        if (value !== null && value !== undefined) {
+                            headers.append(key, String(value));
+                        }
+                    }
+                }
+            }
+        }
+
+        // Add authorization token if available
         if (token) {
-            headers['Authorization'] = `Bearer ${token}`;
+            headers.append('Authorization', `Bearer ${token}`);
         }
 
         try {
             const response = await fetch(url, {
-                headers,
                 ...options,
+                headers, // Use the Headers object directly
             });
 
             // Обработка 401 ошибки (неавторизован)
@@ -198,6 +218,29 @@ class ApiClient {
                 localStorage.removeItem('user');
             }
         }
+    }
+
+    // Методы восстановления пароля
+    async forgotPassword(data: { email: string }): Promise<ApiResponse<void>> {
+        return this.post<ApiResponse<void>>('/auth/forgot-password', data);
+    }
+
+    async resetPassword(token: string, password: string, password_confirmation: string): Promise<ApiResponse<void>> {
+        return this.post<ApiResponse<void>>('/auth/reset-password', {
+            token,
+            password,
+            password_confirmation
+        });
+    }
+
+    // Метод верификации email
+    async verifyEmail(token: string): Promise<ApiResponse<void>> {
+        return this.post<ApiResponse<void>>('/auth/verify-email', { token });
+    }
+
+    // Метод повторной отправки письма подтверждения
+    async resendVerification(email: string): Promise<ApiResponse<void>> {
+        return this.post<ApiResponse<void>>('/auth/resend-verification', { email });
     }
 
     // Методы для сессий

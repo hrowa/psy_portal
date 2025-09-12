@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import {
     Heart, Shield, Users, Award, CheckCircle, Play,
     Calendar, Video, MessageCircle, Star, ArrowRight,
-    Clock, Lock, Headphones, FileText, CreditCard
+    Clock, Lock, Headphones, FileText
 } from 'lucide-react';
 
 // About Us Page Component

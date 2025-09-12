@@ -1,4 +1,4 @@
-// src/app/therapists/[id]/page.tsx
+// app/therapists/[id]/page.tsx
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -17,6 +17,7 @@ import {
     ArrowLeft,
     Lock,
     ChevronRight,
+    Quote,
     CheckCircle,
     Video,
     ThumbsUp
@@ -61,6 +62,37 @@ interface AvailableSlot {
     time: string;
     available: boolean;
 }
+
+// Move mock reviews outside component to avoid dependency issues
+const mockReviews: Review[] = [
+    {
+        id: 1,
+        client_name: 'Мария К.',
+        rating: 5,
+        comment: 'Отличный специалист! Помогла разобраться с тревожностью. Очень профессиональный подход и комфортная атмосфера на сессиях.',
+        date: '2024-03-15',
+        verified: true,
+        helpful_count: 8
+    },
+    {
+        id: 2,
+        client_name: 'Алексей В.',
+        rating: 5,
+        comment: 'Работаем уже полгода. Значительный прогресс в работе со страхами и паническими атаками. Рекомендую!',
+        date: '2024-03-10',
+        verified: true,
+        helpful_count: 12
+    },
+    {
+        id: 3,
+        client_name: 'Елена С.',
+        rating: 4,
+        comment: 'Хороший психолог, помогает структурировать мысли. Единственный минус - иногда сессии затягиваются.',
+        date: '2024-03-05',
+        verified: true,
+        helpful_count: 5
+    }
+];
 
 const BookingModal: React.FC<{
     isOpen: boolean;
@@ -110,6 +142,7 @@ const BookingModal: React.FC<{
 
     const handleBooking = async () => {
         setLoading(true);
+        // Здесь будет логика бронирования
         setTimeout(() => {
             setLoading(false);
             onClose();
@@ -181,7 +214,7 @@ const BookingModal: React.FC<{
                             <div className="grid grid-cols-3 gap-2">
                                 {['10:00', '12:00', '14:00', '16:00', '18:00', '20:00'].map((time) => {
                                     const isSelected = selectedTime === time;
-                                    const isAvailable = Math.random() > 0.3;
+                                    const isAvailable = Math.random() > 0.3; // Моковая логика доступности
 
                                     return (
                                         <button
@@ -240,11 +273,57 @@ const BookingModal: React.FC<{
     );
 };
 
+const ReviewCard: React.FC<{ review: Review }> = ({ review }) => {
+    return (
+        <div className="bg-white border border-gray-200 rounded-lg p-6">
+            <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center">
+                    <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                        {review.client_name[0]}
+                    </div>
+                    <div className="ml-3">
+                        <h4 className="font-semibold text-gray-900">{review.client_name}</h4>
+                        <div className="flex items-center">
+                            {Array.from({ length: 5 }, (_, i) => (
+                                <Star
+                                    key={i}
+                                    className={`h-4 w-4 ${i < review.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
+                                />
+                            ))}
+                            <span className="ml-2 text-sm text-gray-500">
+                                {new Date(review.date).toLocaleDateString('ru-RU')}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                {review.verified && (
+                    <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+                        Подтвержден
+                    </span>
+                )}
+            </div>
+
+            <div className="relative mb-4">
+                <Quote className="absolute -left-1 -top-1 h-5 w-5 text-gray-300" />
+                <p className="text-gray-700 leading-relaxed pl-4">{review.comment}</p>
+            </div>
+
+            <div className="flex items-center justify-between">
+                <button className="flex items-center text-gray-500 hover:text-gray-700">
+                    <ThumbsUp className="h-4 w-4 mr-1" />
+                    <span className="text-sm">Полезно ({review.helpful_count})</span>
+                </button>
+            </div>
+        </div>
+    );
+};
+
 const TherapistProfilePage: React.FC = () => {
     const params = useParams();
     const router = useRouter();
     const { isAuthenticated } = useAuth();
     const [therapist, setTherapist] = useState<Therapist | null>(null);
+    const [reviews, setReviews] = useState<Review[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [showBookingModal, setShowBookingModal] = useState(false);
@@ -266,6 +345,7 @@ const TherapistProfilePage: React.FC = () => {
 
                 if (data.success) {
                     setTherapist(data.data);
+                    setReviews(mockReviews); // Now using mockReviews from outside the component
                 } else {
                     throw new Error(data.error || 'Специалист не найден');
                 }
@@ -280,9 +360,10 @@ const TherapistProfilePage: React.FC = () => {
         if (params.id) {
             fetchTherapist();
         }
-    }, [params.id]);
+    }, [params.id]); // Now only params.id is in the dependency array
 
     const handleLoginRequired = () => {
+        // Здесь должно быть открытие модального окна логина
         alert('Открыть модальное окно входа');
     };
 
@@ -412,7 +493,7 @@ const TherapistProfilePage: React.FC = () => {
                         <nav className="flex px-8">
                             {[
                                 { id: 'about', label: 'О специалисте', icon: BookOpen },
-                                // Reviews tab removed since backend doesn't have review endpoint yet
+                                { id: 'reviews', label: `Отзывы (${reviews.length})`, icon: MessageCircle },
                             ].map((tab) => {
                                 const Icon = tab.icon;
                                 const isActive = activeTab === tab.id;
@@ -436,7 +517,7 @@ const TherapistProfilePage: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Tab Content - only About tab remains */}
+                {/* Tab Content */}
                 <div className="space-y-8">
                     {activeTab === 'about' && (
                         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
@@ -490,6 +571,27 @@ const TherapistProfilePage: React.FC = () => {
                                             <span>Гибкое расписание, включая вечерние часы</span>
                                         </div>
                                     </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'reviews' && (
+                        <div className="space-y-6">
+                            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+                                <div className="flex items-center justify-between mb-6">
+                                    <h2 className="text-2xl font-bold text-gray-900">Отзывы клиентов</h2>
+                                    <div className="flex items-center">
+                                        <Star className="h-6 w-6 text-yellow-400 fill-current mr-2" />
+                                        <span className="text-xl font-bold text-gray-900">{therapist.rating}</span>
+                                        <span className="text-gray-500 ml-2">из 5</span>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 gap-6">
+                                    {reviews.map((review) => (
+                                        <ReviewCard key={review.id} review={review} />
+                                    ))}
                                 </div>
                             </div>
                         </div>

@@ -1,4 +1,4 @@
-import { BaseEntity, Status } from './common';
+import { BaseEntity } from './common';
 
 export interface Payment extends BaseEntity {
     session_id?: number;
@@ -10,7 +10,6 @@ export interface Payment extends BaseEntity {
     transaction_id?: string;
     provider_payment_id?: string;
     description?: string;
-    metadata?: Record<string, any>;
     processed_at?: string;
     failed_at?: string;
     failure_reason?: string;

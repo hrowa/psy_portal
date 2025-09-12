@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, Mail, Lock, User, Phone } from 'lucide-react';
 import { Button, Input } from '@/components/ui';
-import { useAuth } from '@/lib/hooks';
+import { useAuth } from '@/lib/hooks/useAuth';
 import { RegisterData } from '@/types';
 
 export const RegisterForm: React.FC = () => {

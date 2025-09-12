@@ -38,6 +38,13 @@ interface UseAuthReturn {
     updateProfile: (data: Partial<User>) => Promise<{ success: boolean; error?: string }>;
 }
 
+// Тип для ответа API
+interface ApiResponse<T = any> {
+    success: boolean;
+    data?: T;
+    error?: string;
+}
+
 export const useAuth = (): UseAuthReturn => {
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -52,10 +59,9 @@ export const useAuth = (): UseAuthReturn => {
                     } else {
                         // Если нет пользователя в localStorage, попробуем загрузить с сервера
                         try {
-                            const response = await apiClient.get('/auth/profile');
-                            // @ts-expect-error
+                            const response = await apiClient.get('/auth/profile') as ApiResponse<User>;
+
                             if (response.success && response.data) {
-                                //@ts-ignore
                                 setUser(response.data);
                                 // Сохраняем пользователя в localStorage
                                 if (typeof window !== 'undefined') {
@@ -82,7 +88,7 @@ export const useAuth = (): UseAuthReturn => {
     const login = useCallback(async (credentials: LoginCredentials) => {
         try {
             setIsLoading(true);
-            const response = await apiClient.login(credentials);
+            const response = await apiClient.login(credentials) as ApiResponse<{ user: User; token: string }>;
 
             if (response.success && response.data) {
                 setUser(response.data.user);
@@ -90,8 +96,9 @@ export const useAuth = (): UseAuthReturn => {
             } else {
                 return { success: false, error: response.error || 'Ошибка входа' };
             }
-        } catch (error: any) {
-            return { success: false, error: error.message || 'Ошибка входа' };
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : 'Ошибка входа';
+            return { success: false, error: errorMessage };
         } finally {
             setIsLoading(false);
         }
@@ -100,15 +107,16 @@ export const useAuth = (): UseAuthReturn => {
     const register = useCallback(async (data: RegisterData) => {
         try {
             setIsLoading(true);
-            const response = await apiClient.register(data);
+            const response = await apiClient.register(data) as ApiResponse;
 
             if (response.success) {
                 return { success: true };
             } else {
                 return { success: false, error: response.error || 'Ошибка регистрации' };
             }
-        } catch (error: any) {
-            return { success: false, error: error.message || 'Ошибка регистрации' };
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : 'Ошибка регистрации';
+            return { success: false, error: errorMessage };
         } finally {
             setIsLoading(false);
         }
@@ -126,7 +134,7 @@ export const useAuth = (): UseAuthReturn => {
 
     const updateProfile = useCallback(async (data: Partial<User>) => {
         try {
-            const response = await apiClient.put('/auth/profile', data);
+            const response = await apiClient.put('/auth/profile', data) as ApiResponse<User>;
 
             if (response.success && response.data) {
                 setUser(response.data);
@@ -138,8 +146,9 @@ export const useAuth = (): UseAuthReturn => {
             } else {
                 return { success: false, error: response.error || 'Ошибка обновления профиля' };
             }
-        } catch (error: any) {
-            return { success: false, error: error.message || 'Ошибка обновления профиля' };
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : 'Ошибка обновления профиля';
+            return { success: false, error: errorMessage };
         }
     }, []);
 

@@ -5,7 +5,6 @@ export interface Notification extends BaseEntity {
     type: NotificationType;
     title: string;
     message: string;
-    data?: Record<string, any>;
     read_at?: string;
     action_url?: string;
     action_text?: string;

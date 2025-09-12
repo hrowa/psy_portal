@@ -1,4 +1,4 @@
-import { BaseEntity, Status } from './common';
+import { BaseEntity } from './common';
 import { User } from './user';
 import { Therapist } from './therapist';
 
@@ -17,7 +17,6 @@ export interface Session extends BaseEntity {
     client_notes?: string;
     therapist_notes?: string;
     rating?: SessionRating;
-    payment?: Payment;
     video_room_id?: string;
     cancelled_reason?: string;
     cancelled_by?: 'client' | 'therapist' | 'system';

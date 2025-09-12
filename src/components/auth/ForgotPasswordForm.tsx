@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { Mail, ArrowLeft } from 'lucide-react';
 import { Button, Input } from '@/components/ui';
-import { authApi } from '@/lib/api';
+import { apiClient } from '@/lib/api'; // Changed from authApi to apiClient
 
 export const ForgotPasswordForm: React.FC = () => {
     const [email, setEmail] = useState('');
@@ -17,7 +17,8 @@ export const ForgotPasswordForm: React.FC = () => {
         setIsLoading(true);
 
         try {
-            const response = await authApi.forgotPassword({ email });
+            // Changed from authApi.forgotPassword to apiClient.forgotPassword
+            const response = await apiClient.forgotPassword({ email });
 
             if (response.success) {
                 setIsSubmitted(true);
