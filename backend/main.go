@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"crypto/rand"
+	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -140,53 +141,41 @@ var rdb *redis.Client
 func initDB() {
 	var err error
 
-	// Load environment variables
 	_ = godotenv.Load()
 
-	// Build DSN from environment variables
-	host := getEnv("DB_HOST", "localhost")
-	user := getEnv("DB_USER", "postgres")
-	password := getEnv("DB_PASSWORD", "password")
-	dbname := getEnv("DB_NAME", "psy_portal")
-	port := getEnv("DB_PORT", "5432")
-	sslmode := getEnv("DB_SSLMODE", "disable")
-
-	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s",
-		host, user, password, dbname, port, sslmode)
+	dsn := os.Getenv("DATABASE_URL")
+	if dsn == "" {
+		log.Fatal("DATABASE_URL is not set")
+	}
 
 	db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatal("Failed to connect to database:", err)
 	}
 
-	// Auto migrate
 	db.AutoMigrate(&User{}, &RefreshToken{}, &Therapist{}, &Session{})
-
-	// Seed sample data
 	seedData()
 	log.Println("Database connected and migrated successfully")
 }
 
 func initRedis() {
-	addr := getEnv("REDIS_ADDR", "localhost:6379")
-	password := getEnv("REDIS_PASSWORD", "")
-	dbNum, _ := strconv.Atoi(getEnv("REDIS_DB", "0"))
-
-	rdb = redis.NewClient(&redis.Options{
-		Addr:     addr,
-		Password: password,
-		DB:       dbNum,
-	})
-
-	ctx := context.Background()
-	_, err := rdb.Ping(ctx).Result()
+	redisURL := os.Getenv("REDIS_URL")
+	opt, err := redis.ParseURL(redisURL)
 	if err != nil {
-		log.Printf("Warning: Failed to connect to Redis: %v", err)
-		log.Println("Continuing without Redis cache...")
-		rdb = nil
-	} else {
-		log.Println("Redis connected successfully")
+		log.Fatalf("Ошибка парсинга REDIS_URL: %v", err)
 	}
+
+	// Upstash требует TLS
+	opt.TLSConfig = &tls.Config{}
+
+	rdb = redis.NewClient(opt)
+
+	// Проверим соединение
+	if err := rdb.Ping(context.Background()).Err(); err != nil {
+		log.Fatalf("Ошибка подключения к Redis: %v", err)
+	}
+
+	log.Println("Redis подключён успешно")
 }
 
 func getEnv(key, defaultValue string) string {
