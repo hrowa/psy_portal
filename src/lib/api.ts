@@ -1,5 +1,6 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
 
+
 // Типы для API ответов (добавьте в types.ts если нужно)
 interface ApiResponse<T = any> {
     success: boolean;
@@ -42,6 +43,9 @@ interface TherapistListResponse {
     page: number;
     per_page: number;
 }
+
+
+
 
 class ApiClient {
     private getAuthToken(): string | null {
@@ -124,6 +128,8 @@ class ApiClient {
             throw error;
         }
     }
+
+
 
     // HTTP методы
     async get<T>(endpoint: string): Promise<T> {

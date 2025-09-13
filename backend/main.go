@@ -788,10 +788,14 @@ func main() {
 
 	// Setup Gin
 	r := gin.Default()
-
+	
 	// CORS middleware
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:3000", "http://localhost:3001"},
+		AllowOrigins: []string{
+			"http://localhost:3000",
+			"http://localhost:3001",
+			"https://psy-portal.vercel.app/",
+		},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
